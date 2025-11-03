@@ -24,10 +24,11 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL'
       
-      - name: Upload build artifact
+      - name: Upload SAST Scan Results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: trivy-results
+          name: trivy-sast-results
           path: trivy-results.sarif
       
   image_scan:
@@ -44,19 +45,21 @@ jobs:
     
       - name: Build Docker Image
         run: docker build -f Dockerfile -t pygoat_app:latest .
-        
-      - name: Docker Scout Scan
-        uses: docker/scout-action@v1.15.0
-        with:
-          dockerhub-user: ${{ secrets.REPO_USER }}
-          dockerhub-password: ${{ secrets.REPO_PWD }}
-          command: quickview,cves
-          only-severities: critical,high
-          sarif-file: scout-report.sarif
     
-      - name: Upload Artifact
+      - name: Run Trivy vulnerability scanner on Docker image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'pygoat_app:latest'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+    
+      - name: Upload Image Scan Results
         uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: trivy-image-scan-results
+          path: trivy-image-results.sarif
         with:
           name: docker-scout-findings
           path: scout-report.sarif
